@@ -1,2 +1,3 @@
-../../scripts/gen_thrift_file.sh python '../../thrift/ModelDB.thrift' . 
+#!/usr/bin/env bash
+../../scripts/gen_thrift_file.sh python '../../thrift/ModelDB.thrift' .
 thrift -r -out modeldb/thrift -gen py ModelDB.thrift 

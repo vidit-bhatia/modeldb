@@ -293,10 +293,12 @@ $(function() {
         var numModels = response.length;
         var text = numModels + (numModels == 1 ? " model" : " models");
         $('.project-num-models').html(text);
-
+        var showable=0;
         for (var i=0; i<response.length; i++) {
           var model = response[i];
           var id = model.id;
+          if(model.show)
+            showable++;
           var obj = {};
 
           if (min_id == null || id < min_id) {
@@ -389,6 +391,9 @@ $(function() {
 
           models.push(obj);
         }
+        if(showable<1){
+          hideOverviewCharts();
+        }
         metricKeys = Object.values(metricKeys);
         hyperparamKeys = Object.values(hyperparamKeys);
         selectInit();
@@ -397,6 +402,11 @@ $(function() {
         $('.loader').hide();
       }
     });
+  };
+
+  function hideOverviewCharts(){
+    $('.menu-tab[data-id=0]').css({"display":"none"})
+    $('.menu-tab[data-id=1]').click();
   };
 
   function hideModelCard() {

@@ -26,7 +26,7 @@ from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 
 # modeldb imports
-import GridCrossValidation
+from . import GridCrossValidation
 from CrossValidationScore import *
 from ..basic import *
 from ..events import *

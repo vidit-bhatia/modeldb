@@ -28,3 +28,6 @@ parallelExecution in test := false
 resolvers += "Akka Repository" at "http://repo.akka.io/releases/"
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 
+
+publishTo := Some("Artifactory Realm" at "https://artifactory.corp.adobe.com/artifactory/maven-experienceplatform-release-local")
+credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
