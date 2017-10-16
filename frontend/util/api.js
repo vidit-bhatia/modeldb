@@ -64,6 +64,7 @@ module.exports = {
           var model_metrics = models[i].metrics;
           var metrics = [];
           models[i].show = false;
+          models[i].showOnUI = true;
           for (key in model_metrics) {
             if (model_metrics.hasOwnProperty(key)) {
               var val = Object.keys(model_metrics[key]).map(function(k){return model_metrics[key][k]})[0];
@@ -75,11 +76,13 @@ module.exports = {
               models[i].show = true;
             }
           }
+          if(models[i].specification.hyperparameters.length == 0 && models[i].specification.transformerType.toUpperCase() === "PIPELINE")
+            models[i].showOnUI = false;
 
           models[i].metrics = metrics;
         }
         models = models.filter(function(model) {
-          return model.show;
+          return model.showOnUI;
         });
         callback(models);
       });
