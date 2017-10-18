@@ -76,8 +76,8 @@ module.exports = {
               models[i].show = true;
             }
           }
-          if(models[i].specification.hyperparameters.length == 0 && models[i].specification.transformerType.toUpperCase() === "PIPELINE")
-            models[i].showOnUI = false;
+          //if(models[i].specification.hyperparameters.length == 0 && models[i].specification.transformerType.toUpperCase() === "PIPELINE")
+            //models[i].showOnUI = false;
 
           models[i].metrics = metrics;
         }
