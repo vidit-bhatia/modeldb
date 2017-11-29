@@ -1,10 +1,10 @@
 package edu.mit.csail.db.ml.modeldb.client
 
 import java.util.UUID
-import java.util.concurrent._
 
 import com.twitter.finagle.Thrift
-import com.twitter.util.Await
+import com.twitter.finagle.transport.Transport
+import com.twitter.util.{Await, Duration}
 import edu.mit.csail.db.ml.modeldb.client.SyncingStrategy.SyncingStrategy
 import edu.mit.csail.db.ml.modeldb.client.event.{ExperimentEvent, ExperimentRunEvent, ModelDbEvent, ProjectEvent}
 import org.apache.spark.ml.FeatureTracker
@@ -119,11 +119,6 @@ case class NewExperimentRun(description: String="") extends ExperimentRunConfig(
   *                         be stored for a GridSearchCrossValidationEvent. Disabling this improves performance.
   * @param shouldStoreSpecificModels - Whether specific models (e.g. TreeModel, LinearModel) should be stored wherever
   *                                  applicable. Disabling this improves performance.
-  * @param keepAlive - Whether ModelSyncer need to send the keep Alive beacons to the remote server to maintain TCP
-  *                  connection(Default false as there is a overhead to keep the connection alive)
-  * @param keepAliveBeaconTime - The timeout for sending the keep alive beacon. This value is set in seconds . A very
-  *                            small value such as 1 is not recommended as it will keep the server and client busy for
-  *                            no reason. Default value is 30
   */
 class ModelDbSyncer(var hostPortPair: Option[(String, Int)] = Some("localhost", 6543),
                     var syncingStrategy: SyncingStrategy = SyncingStrategy.Eager,
@@ -132,9 +127,7 @@ class ModelDbSyncer(var hostPortPair: Option[(String, Int)] = Some("localhost", 
                     var experimentRunConfig: ExperimentRunConfig = new NewExperimentRun,
                     var shouldCountRows: Boolean = false,
                     var shouldStoreGSCVE: Boolean = false,
-                    var shouldStoreSpecificModels: Boolean = false,
-                    var keepAlive: Boolean = true,
-                    var keepAliveBeaconTime: Int = 3) {
+                    var shouldStoreSpecificModels: Boolean = false) {
 
   /**
     * Configure this syncer with the configuration from JSON.
@@ -162,9 +155,7 @@ class ModelDbSyncer(var hostPortPair: Option[(String, Int)] = Some("localhost", 
       ),
       shouldCountRows = conf.shouldCountRows,
       shouldStoreGSCVE = conf.shouldStoreGSCVE,
-      shouldStoreSpecificModels = conf.shouldStoreSpecificModels,
-      keepAlive = conf.keepAlive,
-      keepAliveBeaconTime = conf.keepAliveBeaconTime
+      shouldStoreSpecificModels = conf.shouldStoreSpecificModels
     )
   }
 
@@ -184,26 +175,11 @@ class ModelDbSyncer(var hostPortPair: Option[(String, Int)] = Some("localhost", 
     * This is the Thrift client that is responsible for talking to the ModelDB server.
     */
   private val client: Option[FutureIface] = hostPortPair match {
-    case Some((host, port)) => Some(Thrift.client.newIface[ModelDBService.FutureIface](s"$host:$port"))
+    case Some((host, port)) =>  Some(Thrift.client.
+      configured(Transport.Liveness(keepAlive=Some(true),readTimeout = Duration.Top, writeTimeout = Duration.Top)).
+      newIface[ModelDBService.FutureIface](s"$host:$port"))
     case None => None
   }
-
-
-  val executor = if (keepAlive) {
-    val executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory(){
-      override def newThread(r: Runnable) = {
-        val t: Thread = Executors.defaultThreadFactory.newThread(r)
-        t.setDaemon(true)
-        t
-      }
-    })
-    val keepAliveRunnable = new Runnable {
-      def run() = Await.result(client.get.testConnection())
-    }
-    executor.scheduleWithFixedDelay(keepAliveRunnable, keepAliveBeaconTime, keepAliveBeaconTime, TimeUnit.SECONDS)
-  }
-
-
 
   /**
     * We keep a mapping between objects and their IDs.
